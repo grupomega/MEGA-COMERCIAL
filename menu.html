@@ -41,8 +41,8 @@
   <main>
     <section id="adminPanel" class="admin hidden">
       <h2>Gestão dos links</h2>
-      <p>Cadastre, altere, exclua, exporte e importe os links. As alterações ficam salvas neste navegador via localStorage. Para publicação online centralizada, use este HTML como menu principal e direcione os botões para outros sistemas, páginas, formulários e dashboards.</p>
-      <div class="notice"><b>Atenção:</b> na versão HTML puro, cada navegador salva seus próprios links. Para todos verem os mesmos links automaticamente, publique uma lista central JSON ou conecte a página a banco de dados/API.</div>
+      <p>Cadastre, altere, exclua, exporte e importe os links. Acesso administrador protegido por senha 123456.</p>
+      <div class="notice"><b>Atenção:</b> para todos os computadores usarem a mesma lista, exporte o JSON e substitua o bloco inicial no HTML, ou hospede esse JSON em uma pasta compartilhada/servidor interno.</div>
       <input type="hidden" id="editId">
       <div class="form-grid">
         <div class="form-row"><label>Categoria</label><input id="cat" class="input" placeholder="Ex: Operação, RH, Financeiro"></div>
@@ -71,65 +71,274 @@
   <div class="footer">Grupo MEGA · Intranet Interna · Sinalização, obras, operação e gestão</div>
 
 <script>
+const ADMIN_PASSWORD = "123456";
+
+function uid(){
+  if (window.crypto && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  return "id_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2,10);
+}
+
 const defaultLinks = [
-  {id:crypto.randomUUID(), categoria:'Operação / Obras', nome:'RDO Digital', url:'#', descricao:'Relatório diário de obra, fotos, equipes, produção e ocorrências.', ativo:true},
-  {id:crypto.randomUUID(), categoria:'Operação / Obras', nome:'Planejamento de Obras', url:'#', descricao:'Cronogramas, programação semanal, metas e responsáveis.', ativo:true},
-  {id:crypto.randomUUID(), categoria:'Operação / Obras', nome:'Controle de Medição', url:'#', descricao:'Medições por contrato, período, frente e cliente.', ativo:true},
-  {id:crypto.randomUUID(), categoria:'RH e Segurança', nome:'Ficha de EPI', url:'#', descricao:'Entrega, troca e histórico de EPIs por colaborador.', ativo:true},
-  {id:crypto.randomUUID(), categoria:'RH e Segurança', nome:'Admissão e Integração', url:'#', descricao:'Documentos admissionais, treinamentos e integração MEGA.', ativo:true},
-  {id:crypto.randomUUID(), categoria:'RH e Segurança', nome:'DDS e Treinamentos', url:'#', descricao:'Materiais de segurança, DDS, NRs e campanhas internas.', ativo:true},
-  {id:crypto.randomUUID(), categoria:'Frota e Equipamentos', nome:'Checklist de Caminhões', url:'#', descricao:'Inspeções, manutenção, avarias e disponibilidade da frota.', ativo:true},
-  {id:crypto.randomUUID(), categoria:'Frota e Equipamentos', nome:'Controle de Combustível', url:'#', descricao:'Abastecimentos, consumo por obra, equipamento e motorista.', ativo:true},
-  {id:crypto.randomUUID(), categoria:'Suprimentos / Estoque', nome:'Requisição de Compras', url:'#', descricao:'Solicitação, aprovação, cotação e compra de materiais.', ativo:true},
-  {id:crypto.randomUUID(), categoria:'Suprimentos / Estoque', nome:'Estoque Matriz e Obras', url:'#', descricao:'Tinta, esfera, tachas, placas, cones, defensas e insumos.', ativo:true},
-  {id:crypto.randomUUID(), categoria:'Financeiro', nome:'Fluxo de Caixa', url:'#', descricao:'Entradas, saídas, prioridades de pagamento e previsões.', ativo:true},
-  {id:crypto.randomUUID(), categoria:'Financeiro', nome:'DRE por Obra', url:'#', descricao:'Resultado financeiro por contrato, obra e centro de custo.', ativo:true},
-  {id:crypto.randomUUID(), categoria:'Comercial / Contratos', nome:'CRM Comercial', url:'#', descricao:'Leads, propostas, clientes, follow-up e contratos.', ativo:true},
-  {id:crypto.randomUUID(), categoria:'Comercial / Contratos', nome:'Tabela Comercial MEGA', url:'#', descricao:'Preços mínimos, indicados, máximos e composição de serviços.', ativo:true},
-  {id:crypto.randomUUID(), categoria:'Documentos Padrão', nome:'Modelos de Declarações', url:'#', descricao:'Declarações, cartas, propostas e documentos institucionais.', ativo:true},
-  {id:crypto.randomUUID(), categoria:'Documentos Padrão', nome:'Normas e Procedimentos', url:'#', descricao:'Procedimentos internos, instruções de trabalho e padrões MEGA.', ativo:true}
+  {id:uid(), categoria:'Operação / Obras', nome:'RDO Digital', url:'#', descricao:'Relatório diário de obra, fotos, equipes, produção e ocorrências.', ativo:true},
+  {id:uid(), categoria:'Operação / Obras', nome:'Planejamento de Obras', url:'#', descricao:'Cronogramas, programação semanal, metas e responsáveis.', ativo:true},
+  {id:uid(), categoria:'Operação / Obras', nome:'Controle de Medição', url:'#', descricao:'Medições por contrato, período, frente e cliente.', ativo:true},
+  {id:uid(), categoria:'RH e Segurança', nome:'Ficha de EPI', url:'#', descricao:'Entrega, troca e histórico de EPIs por colaborador.', ativo:true},
+  {id:uid(), categoria:'RH e Segurança', nome:'Admissão e Integração', url:'#', descricao:'Documentos admissionais, treinamentos e integração MEGA.', ativo:true},
+  {id:uid(), categoria:'RH e Segurança', nome:'DDS e Treinamentos', url:'#', descricao:'Materiais de segurança, DDS, NRs e campanhas internas.', ativo:true},
+  {id:uid(), categoria:'Frota e Equipamentos', nome:'Checklist de Caminhões', url:'#', descricao:'Inspeções, manutenção, avarias e disponibilidade da frota.', ativo:true},
+  {id:uid(), categoria:'Frota e Equipamentos', nome:'Controle de Combustível', url:'#', descricao:'Abastecimentos, consumo por obra, equipamento e motorista.', ativo:true},
+  {id:uid(), categoria:'Suprimentos / Estoque', nome:'Requisição de Compras', url:'#', descricao:'Solicitação, aprovação, cotação e compra de materiais.', ativo:true},
+  {id:uid(), categoria:'Suprimentos / Estoque', nome:'Estoque Matriz e Obras', url:'#', descricao:'Tinta, esfera, tachas, placas, cones, defensas e insumos.', ativo:true},
+  {id:uid(), categoria:'Financeiro', nome:'Fluxo de Caixa', url:'#', descricao:'Entradas, saídas, prioridades de pagamento e previsões.', ativo:true},
+  {id:uid(), categoria:'Financeiro', nome:'DRE por Obra', url:'#', descricao:'Resultado financeiro por contrato, obra e centro de custo.', ativo:true},
+  {id:uid(), categoria:'Comercial / Contratos', nome:'CRM Comercial', url:'#', descricao:'Leads, propostas, clientes, follow-up e contratos.', ativo:true},
+  {id:uid(), categoria:'Comercial / Contratos', nome:'Tabela Comercial MEGA', url:'#', descricao:'Preços mínimos, indicados, máximos e composição de serviços.', ativo:true},
+  {id:uid(), categoria:'Documentos Padrão', nome:'Modelos de Declarações', url:'#', descricao:'Declarações, cartas, propostas e documentos institucionais.', ativo:true},
+  {id:uid(), categoria:'Documentos Padrão', nome:'Normas e Procedimentos', url:'#', descricao:'Procedimentos internos, instruções de trabalho e padrões MEGA.', ativo:true}
 ];
-let links = JSON.parse(localStorage.getItem('megaIntranetLinks') || 'null') || defaultLinks;
-function persist(){localStorage.setItem('megaIntranetLinks', JSON.stringify(links));}
-const ADMIN_PASSWORD='123456';
+
+let links = loadLinks();
+
+function el(id){ return document.getElementById(id); }
+
+function loadLinks(){
+  try{
+    const saved = localStorage.getItem('megaIntranetLinks');
+    if(!saved) return defaultLinks;
+    const parsed = JSON.parse(saved);
+    if(!Array.isArray(parsed)) return defaultLinks;
+    return parsed.map(x => ({
+      id: x.id || uid(),
+      categoria: x.categoria || 'Sem categoria',
+      nome: x.nome || 'Link sem nome',
+      url: x.url || '#',
+      descricao: x.descricao || '',
+      ativo: x.ativo !== false
+    }));
+  }catch(e){
+    console.error(e);
+    return defaultLinks;
+  }
+}
+
+function persist(){
+  localStorage.setItem('megaIntranetLinks', JSON.stringify(links));
+}
+
 function toggleAdmin(){
-  const panel=document.getElementById('adminPanel');
+  const panel = el('adminPanel');
   if(panel.classList.contains('hidden')){
-    const senha=prompt('Digite a senha do administrador:');
-    if(senha!==ADMIN_PASSWORD){ alert('Senha incorreta.'); return; }
+    const senha = prompt('Digite a senha do administrador:');
+    if(senha !== ADMIN_PASSWORD){
+      alert('Senha incorreta.');
+      return;
+    }
     panel.classList.remove('hidden');
     renderAdmin();
+    setTimeout(()=>panel.scrollIntoView({behavior:'smooth', block:'start'}), 80);
   }else{
     panel.classList.add('hidden');
   }
 }
-function clearForm(){['editId','cat','name','url','desc'].forEach(id=>document.getElementById(id).value='');document.getElementById('active').value='true';}
+
+function clearForm(){
+  ['editId','cat','name','url','desc'].forEach(id => el(id).value = '');
+  el('active').value = 'true';
+  const btn = document.querySelector('.actions .btn.red');
+  if(btn) btn.textContent = 'Salvar link';
+}
+
 function saveLink(){
-  const id=document.getElementById('editId').value || crypto.randomUUID();
-  const item={id,categoria:cat.value.trim(),nome:name.value.trim(),url:url.value.trim()||'#',descricao:desc.value.trim(),ativo:active.value==='true'};
-  if(!item.categoria||!item.nome){alert('Informe categoria e nome do link.');return;}
-  const idx=links.findIndex(l=>l.id===id); if(idx>=0) links[idx]=item; else links.push(item);
-  persist(); clearForm(); render(); renderAdmin();
+  const id = el('editId').value || uid();
+  const item = {
+    id,
+    categoria: el('cat').value.trim(),
+    nome: el('name').value.trim(),
+    url: el('url').value.trim() || '#',
+    descricao: el('desc').value.trim(),
+    ativo: el('active').value === 'true'
+  };
+
+  if(!item.categoria || !item.nome){
+    alert('Informe categoria e nome do link.');
+    return;
+  }
+
+  const idx = links.findIndex(l => l.id === id);
+  if(idx >= 0) links[idx] = item;
+  else links.push(item);
+
+  persist();
+  clearForm();
+  render();
+  renderAdmin();
+  alert('Link salvo com sucesso.');
 }
-function editLink(id){const l=links.find(x=>x.id===id); if(!l)return; editId.value=l.id; cat.value=l.categoria; name.value=l.nome; url.value=l.url; desc.value=l.descricao||''; active.value=String(l.ativo); window.scrollTo({top:0,behavior:'smooth'});}
-function deleteLink(id){if(confirm('Excluir este link?')){links=links.filter(l=>l.id!==id);persist();render();renderAdmin();}}
-function renderAdmin(){adminRows.innerHTML=links.map(l=>`<tr><td>${esc(l.categoria)}</td><td>${esc(l.nome)}</td><td>${esc(l.url)}</td><td><span class="status ${l.ativo?'':'off'}">${l.ativo?'Ativo':'Inativo'}</span></td><td><button class="mini edit" onclick="editLink('${l.id}')">Editar</button><button class="mini del" onclick="deleteLink('${l.id}')">Excluir</button></td></tr>`).join('');}
+
+function editLink(id){
+  const l = links.find(x => x.id === id);
+  if(!l) return;
+
+  el('editId').value = l.id;
+  el('cat').value = l.categoria;
+  el('name').value = l.nome;
+  el('url').value = l.url;
+  el('desc').value = l.descricao || '';
+  el('active').value = String(l.ativo);
+
+  const btn = document.querySelector('.actions .btn.red');
+  if(btn) btn.textContent = 'Salvar alteração';
+
+  el('adminPanel').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function deleteLink(id){
+  if(confirm('Excluir este link?')){
+    links = links.filter(l => l.id !== id);
+    persist();
+    render();
+    renderAdmin();
+  }
+}
+
+function renderAdmin(){
+  const tbody = el('adminRows');
+  tbody.innerHTML = links.map(l => `
+    <tr>
+      <td>${esc(l.categoria)}</td>
+      <td>${esc(l.nome)}</td>
+      <td>${esc(l.url)}</td>
+      <td><span class="status ${l.ativo ? '' : 'off'}">${l.ativo ? 'Ativo' : 'Inativo'}</span></td>
+      <td>
+        <button type="button" class="mini edit" onclick="editLink('${escAttr(l.id)}')">Editar</button>
+        <button type="button" class="mini del" onclick="deleteLink('${escAttr(l.id)}')">Excluir</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
 function render(){
-  const q=search.value.toLowerCase(); const f=catFilter.value;
-  const cats=[...new Set(links.map(l=>l.categoria))].sort(); catFilter.innerHTML='<option value="">Todas as categorias</option>'+cats.map(c=>`<option ${c===f?'selected':''}>${esc(c)}</option>`).join('');
-  const filtered=links.filter(l=>l.ativo && (!f||l.categoria===f) && (`${l.categoria} ${l.nome} ${l.descricao} ${l.url}`.toLowerCase().includes(q)));
-  const grouped={}; filtered.forEach(l=>(grouped[l.categoria]??=[]).push(l));
-  totalLinks.textContent=links.filter(l=>l.ativo).length; totalCats.textContent=new Set(links.filter(l=>l.ativo).map(l=>l.categoria)).size;
-  const html=Object.keys(grouped).sort().map(c=>`<article class="card"><h3>${esc(c)}</h3><div class="desc">${grouped[c].length} acesso(s) disponível(is)</div><div class="links">${grouped[c].map(l=>`<a class="link" href="${esc(l.url)}" target="_blank" rel="noopener"><div><strong>${esc(l.nome)}</strong><small>${esc(l.descricao||l.url)}</small></div><div class="arrow">›</div></a>`).join('')}</div></article>`).join('');
-  cards.innerHTML=html||'<div class="empty">Nenhum link encontrado.</div>';
+  const searchBox = el('search');
+  const filterBox = el('catFilter');
+  const q = (searchBox ? searchBox.value : '').toLowerCase();
+  const previousFilter = filterBox ? filterBox.value : '';
+
+  const cats = [...new Set(links.map(l => l.categoria))].sort();
+
+  if(filterBox){
+    filterBox.innerHTML = '<option value="">Todas as categorias</option>' +
+      cats.map(c => `<option value="${escAttr(c)}" ${c === previousFilter ? 'selected' : ''}>${esc(c)}</option>`).join('');
+  }
+
+  const activeFilter = filterBox ? filterBox.value : '';
+  const filtered = links.filter(l =>
+    l.ativo &&
+    (!activeFilter || l.categoria === activeFilter) &&
+    (`${l.categoria} ${l.nome} ${l.descricao} ${l.url}`.toLowerCase().includes(q))
+  );
+
+  const grouped = {};
+  filtered.forEach(l => {
+    if(!grouped[l.categoria]) grouped[l.categoria] = [];
+    grouped[l.categoria].push(l);
+  });
+
+  el('totalLinks').textContent = links.filter(l => l.ativo).length;
+  el('totalCats').textContent = new Set(links.filter(l => l.ativo).map(l => l.categoria)).size;
+
+  const html = Object.keys(grouped).sort().map(c => `
+    <article class="card">
+      <h3>${esc(c)}</h3>
+      <div class="desc">${grouped[c].length} acesso(s) disponível(is)</div>
+      <div class="links">
+        ${grouped[c].map(l => `
+          <a class="link" href="${escAttr(l.url)}" target="_blank" rel="noopener">
+            <div>
+              <strong>${esc(l.nome)}</strong>
+              <small>${esc(l.descricao || l.url)}</small>
+            </div>
+            <div class="arrow">›</div>
+          </a>
+        `).join('')}
+      </div>
+    </article>
+  `).join('');
+
+  el('cards').innerHTML = html || '<div class="empty">Nenhum link encontrado.</div>';
 }
-function exportJSON(){const blob=new Blob([JSON.stringify(links,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='links-intranet-grupo-mega.json';a.click();URL.revokeObjectURL(a.href);}
-function importJSON(e){const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const data=JSON.parse(r.result);if(!Array.isArray(data))throw Error();links=data.map(x=>({...x,id:x.id||crypto.randomUUID(),ativo:x.ativo!==false}));persist();render();renderAdmin();alert('Links importados com sucesso.');}catch{alert('Arquivo inválido.');}};r.readAsText(file);}
-function resetDefault(){if(confirm('Restaurar lista padrão? Isso substituirá os links salvos neste navegador.')){links=defaultLinks;persist();render();renderAdmin();}}
-function openAllActive(){links.filter(l=>l.ativo).slice(0,5).forEach(l=>{if(l.url&&l.url!=='#') window.open(l.url,'_blank');});}
-function esc(v){return String(v??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));}
-dateNow.textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
-render();
+
+function exportJSON(){
+  const blob = new Blob([JSON.stringify(links,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'links-intranet-grupo-mega.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(a.href);
+}
+
+function importJSON(e){
+  const file = e.target.files[0];
+  if(!file) return;
+
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const data = JSON.parse(r.result);
+      if(!Array.isArray(data)) throw new Error('JSON precisa ser uma lista.');
+      links = data.map(x => ({
+        id: x.id || uid(),
+        categoria: x.categoria || 'Sem categoria',
+        nome: x.nome || 'Link sem nome',
+        url: x.url || '#',
+        descricao: x.descricao || '',
+        ativo: x.ativo !== false
+      }));
+      persist();
+      render();
+      renderAdmin();
+      alert('Links importados com sucesso.');
+    }catch(err){
+      console.error(err);
+      alert('Arquivo inválido.');
+    }
+  };
+  r.readAsText(file);
+}
+
+function resetDefault(){
+  if(confirm('Restaurar lista padrão? Isso substituirá os links salvos neste navegador.')){
+    links = defaultLinks.map(x => ({...x, id: uid()}));
+    persist();
+    clearForm();
+    render();
+    renderAdmin();
+  }
+}
+
+function openAllActive(){
+  links.filter(l => l.ativo).slice(0,5).forEach(l => {
+    if(l.url && l.url !== '#') window.open(l.url,'_blank');
+  });
+}
+
+function esc(v){
+  return String(v ?? '').replace(/[&<>'"]/g, m => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;'
+  }[m]));
+}
+
+function escAttr(v){
+  return esc(v).replace(/`/g, '&#96;');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  el('dateNow').textContent = new Date().toLocaleDateString('pt-BR', {
+    weekday:'long', day:'2-digit', month:'long', year:'numeric'
+  });
+  render();
+});
 </script>
 </body>
 </html>
